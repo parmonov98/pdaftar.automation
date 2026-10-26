@@ -19,7 +19,7 @@ function instagramRoutes(opts: { username?: string } = {}) {
     if (url.hostname === 'cdn.test') return new Response(PHOTO);
     if (!url.href.startsWith(IG)) return undefined;
     const path = url.pathname.replace('/v26.0', '');
-    if (/^\/\d+$/.test(path) && (init?.method ?? 'GET') === 'GET' && url.searchParams.get('fields') === 'username,name') return json({ username: opts.username ?? 'stranger', name: 'X' });
+    if (/^\/\d+$/.test(path) && (init?.method ?? 'GET') === 'GET' && url.searchParams.get('fields') === 'username,name,is_user_follow_business') return json({ username: opts.username ?? 'stranger', name: 'X', is_user_follow_business: true });
     if (path === '/178/messages') return json({ recipient_id: '55', message_id: 'out-1' });
     if (/^\/c\d+\/replies$/.test(path)) return json({ id: 'reply-1' });
     if (path === '/178/content_publishing_limit') return json({ data: [{ quota_usage: 1, config: { quota_total: 50 } }] });

@@ -8,6 +8,7 @@ import type { AppContext } from './services/context.js';
 import { handleComment, handleMessage } from './services/inbound.js';
 import { enqueue, recoverStuck, startLane, type JobHandler } from './services/jobs.js';
 import { handlePublish, handleRefreshTokens, handleRender } from './services/promo.js';
+import { handleSocialEvent } from './services/social.js';
 
 const config = loadConfig();
 if (Buffer.from(config.encryptionKey, 'base64').length !== 32) {
@@ -31,13 +32,14 @@ const handlers: Record<string, JobHandler> = {
   render_video: handleRender,
   publish_video: handlePublish,
   refresh_tokens: (c) => handleRefreshTokens(c),
+  social_event: handleSocialEvent,
 };
 
 recoverStuck(ctx);
 if (!ctx.db.prepare(`SELECT 1 FROM jobs WHERE type = 'refresh_tokens' AND status = 'pending'`).get()) enqueue(ctx, 'refresh_tokens', {}, 60);
 
 // Replies must stay fast, so renders get their own lane.
-startLane(ctx, handlers, ['comment', 'message', 'publish_video', 'refresh_tokens'], 500);
+startLane(ctx, handlers, ['comment', 'message', 'publish_video', 'refresh_tokens', 'social_event'], 500);
 startLane(ctx, handlers, ['render_video'], 1000);
 
 const app = buildServer(ctx);

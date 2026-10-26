@@ -113,13 +113,21 @@ export class InstagramClient {
   }
 
   /** Username of a person who messaged the account (needs the messaging permission). */
-  async userProfile(igsid: string): Promise<{ username: string | null; name: string | null }> {
+  async userProfile(igsid: string): Promise<{ username: string | null; name: string | null; followsUs: boolean | null }> {
     try {
-      const body = (await this.get(`/${igsid}`, { fields: 'username,name' })) as { username?: string; name?: string };
-      return { username: body.username ?? null, name: body.name ?? null };
+      const body = (await this.get(`/${igsid}`, { fields: 'username,name,is_user_follow_business' })) as {
+        username?: string;
+        name?: string;
+        is_user_follow_business?: boolean;
+      };
+      return { username: body.username ?? null, name: body.name ?? null, followsUs: typeof body.is_user_follow_business === 'boolean' ? body.is_user_follow_business : null };
     } catch {
-      return { username: null, name: null };
+      return { username: null, name: null, followsUs: null };
     }
+  }
+
+  async mediaPermalink(mediaId: string): Promise<string | null> {
+    return this.permalink(mediaId).catch(() => null);
   }
 
   /** Subscribes this account to our app's webhook fields. */

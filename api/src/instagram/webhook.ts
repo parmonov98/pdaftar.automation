@@ -27,7 +27,17 @@ export interface IncomingMessage {
   timestamp: number;
 }
 
-export type IncomingEvent = IncomingComment | IncomingMessage;
+/** Someone mentioned the account in their story (an attachment of type story_mention). */
+export interface IncomingStoryMention {
+  kind: 'story_mention';
+  accountId: string;
+  senderId: string;
+  mid: string;
+  storyUrl: string | null;
+  timestamp: number;
+}
+
+export type IncomingEvent = IncomingComment | IncomingMessage | IncomingStoryMention;
 
 interface RawEntry {
   id?: string | number;
@@ -77,6 +87,11 @@ export function parseWebhook(body: unknown): IncomingEvent[] {
       if (!msg?.mid || msg.is_echo || msg.is_deleted) continue;
       const senderId = m.sender?.id;
       if (!senderId || senderId === accountId) continue;
+      const mention = (msg.attachments ?? []).find((a) => a.type === 'story_mention');
+      if (mention) {
+        out.push({ kind: 'story_mention', accountId: String(m.recipient?.id ?? accountId), senderId, mid: msg.mid, storyUrl: mention.payload?.url ?? null, timestamp: m.timestamp ?? Date.now() });
+        continue;
+      }
       const imageUrls = (msg.attachments ?? [])
         .filter((a) => a.type === 'image' && a.payload?.url)
         .map((a) => a.payload!.url!);

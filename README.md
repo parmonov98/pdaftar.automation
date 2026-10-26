@@ -102,6 +102,8 @@ Startup track rules require us to separate new work from the existing product.
 
 On the pDaftar side, the integration API (per-shop token, catalog read, order create) was also built during the event: pdaftar.backend PR #2366, Oct 27.
 
+**Not part of the hackathon entry:** `api/src/services/social.ts`. It forwards story mentions, comments and follow status from pDaftar's *own* Instagram account to pDaftar, which verifies its ambassador tasks there (opt-in per task, never auto-rejecting). It is a pDaftar-internal feature, and the demo does not show it.
+
 **Existing assets reused (disclosed):**
 - `api/assets/music/pdaftar-bed.m4a`: pDaftar's own original 15-second instrumental (no third-party samples, made September 2026).
 - The Roboto fonts (Apache 2.0).

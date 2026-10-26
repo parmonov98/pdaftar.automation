@@ -16,6 +16,7 @@ import {
   settingsOf,
 } from './context.js';
 import { enqueue } from './jobs.js';
+import { queueSocial } from './social.js';
 
 type Decision = Awaited<ReturnType<typeof replyFor>>;
 
@@ -39,7 +40,7 @@ async function budgetSafe(ctx: AppContext, channel: 'comment' | 'dm', run: () =>
 
 /** Records a webhook event once (Meta retries) and queues the work. */
 export function acceptEvent(ctx: AppContext, ev: IncomingEvent): boolean {
-  const key = ev.kind === 'comment' ? `c:${ev.commentId}` : `m:${ev.mid}`;
+  const key = ev.kind === 'comment' ? `c:${ev.commentId}` : ev.kind === 'story_mention' ? `s:${ev.mid}` : `m:${ev.mid}`;
   const fresh = ctx.db.prepare('INSERT OR IGNORE INTO webhook_events (dedupe_key) VALUES (?)').run(key).changes > 0;
   if (!fresh) return false;
   const acc = igAccountByIgId(ctx, ev.accountId);
@@ -47,6 +48,9 @@ export function acceptEvent(ctx: AppContext, ev: IncomingEvent): boolean {
     ctx.log('webhook for unknown account', { accountId: ev.accountId });
     return false;
   }
+  // The official account also verifies ambassador tasks in pDaftar.
+  queueSocial(ctx, ev);
+  if (ev.kind === 'story_mention') return true;
   enqueue(ctx, ev.kind === 'comment' ? 'comment' : 'message', ev as unknown as Record<string, unknown>);
   return true;
 }

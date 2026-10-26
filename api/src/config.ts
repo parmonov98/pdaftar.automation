@@ -55,10 +55,14 @@ export interface Config {
      */
     safeMode: boolean;
     safeModeAllowedUsernames: string[];
+    /** pDaftar's own accounts: their comments, story mentions and DMs also verify ambassador tasks. */
+    officialAccountIds: string[];
   };
 
   pdaftar: {
     apiBaseUrl: string;
+    /** Token with the social-verification right (issued with automation:issue-token --social). */
+    socialToken: string;
   };
 }
 
@@ -94,9 +98,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       allowedAccountIds: list(env.IG_ALLOWED_ACCOUNT_IDS),
       safeMode: bool(env.IG_SAFE_MODE, true),
       safeModeAllowedUsernames: list(env.IG_SAFE_MODE_ALLOWED_USERNAMES).map((u) => u.replace(/^@/, '').toLowerCase()),
+      officialAccountIds: list(env.IG_OFFICIAL_ACCOUNT_IDS),
     },
     pdaftar: {
       apiBaseUrl: (env.PDAFTAR_API_BASE_URL ?? 'https://dev-api.pdaftar.uz').replace(/\/$/, ''),
+      socialToken: env.PDAFTAR_SOCIAL_TOKEN ?? '',
     },
   };
 }
