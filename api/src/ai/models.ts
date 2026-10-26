@@ -253,10 +253,14 @@ function mockReply(text: string) {
     show_price?: boolean;
     language?: string;
   };
+  const intent = (facts as { intent?: string }).intent;
+  if (intent === 'human' || intent === 'complaint') {
+    return { reply: "Uzr, noqulaylik uchun! Do'kon egasi tez orada o'zi javob beradi.", handoff: true };
+  }
   const p = facts.products?.[0];
   if (!p) return { reply: 'Assalomu alaykum! Qaysi mahsulot qiziqtirdi? Rasmini yuboring, aniqlab beraman.', handoff: false };
   if (facts.channel === 'comment' && !facts.show_price) {
-    return { reply: `${p.name} bor! Narxini Direct'ga yozdik emas — Direct'ga "narx" deb yozing 🙂`, handoff: false };
+    return { reply: `${p.name} bor! Narxi va buyurtma uchun Direct'ga yozing 🙂`, handoff: false };
   }
   const price = p.price_text ?? 'narxini aniqlab beraman';
   const stock = p.stock === null ? '' : p.stock > 0 ? ` Omborda ${p.stock} ta bor.` : ' Hozircha tugagan.';

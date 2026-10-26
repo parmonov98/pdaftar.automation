@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, type CommentRow, type Conversation, type Message } from '../api';
+import { api, ApiError, type CommentRow, type Conversation, type Message } from '../api';
 import { useT } from '../i18n';
 
 function statusChip(status: string): string {
@@ -28,6 +28,11 @@ function usePoll<T>(load: () => Promise<T>, ms: number) {
     return () => window.clearInterval(id);
   }, [refresh, ms]);
   return { data, error, refresh };
+}
+
+/** "@username", or "Mijoz ·1234" when Instagram did not give us a username. */
+function who(username: string | null, id: string, customer: string): string {
+  return username ? `@${username}` : `${customer} ·${id.slice(-4)}`;
 }
 
 export function Inbox() {
@@ -71,7 +76,7 @@ function Comments() {
           </div>
           <div>{c.text}</div>
           {(c.status === 'draft' || c.status === 'handoff') && c.reply_text !== null ? (
-            <DraftEditor initial={c.reply_text} note={c.reason} endpoint={`/api/inbox/comments/${c.id}/send`} onSent={refresh} />
+            <DraftEditor initial={c.reply_text} note={c.reason} endpoint={`/api/inbox/comments/${c.id}/send`} onSent={refresh} showChip={false} />
           ) : (
             c.reply_text && <div className="bubble out">{c.reply_text}</div>
           )}
@@ -95,7 +100,7 @@ function Direct() {
         {data.map((c) => (
           <button key={c.id} className="conv" aria-current={open === c.id} onClick={() => setOpen(c.id)}>
             <div className="row">
-              <strong className="grow">@{c.username ?? c.igsid}</strong>
+              <strong className="grow">{who(c.username, c.igsid, t.customer)}</strong>
               {c.drafts > 0 && <span className="chip">{t.status.draft}</span>}
               {c.status === 'handoff' && <span className="chip warn">{t.status.handoff}</span>}
             </div>
@@ -127,7 +132,7 @@ function Thread({ id, onChange }: { id: number; onChange: () => void }) {
   return (
     <div className="card pad stack">
       <div className="row">
-        <h3 className="grow">@{data.conversation.username ?? '—'}</h3>
+        <h3 className="grow">{who(data.conversation.username, String(id), t.customer)}</h3>
         <label className="row" style={{ gap: 6, fontSize: 14 }}>
           <input type="checkbox" checked={!!data.conversation.ai_enabled} onChange={(e) => void patch({ aiEnabled: e.target.checked })} />
           {data.conversation.ai_enabled ? t.aiOn : t.aiOff}
@@ -157,7 +162,7 @@ function Thread({ id, onChange }: { id: number; onChange: () => void }) {
   );
 }
 
-function DraftEditor({ initial, note, endpoint, onSent }: { initial: string; note: string | null; endpoint: string; onSent: () => void }) {
+function DraftEditor({ initial, note, endpoint, onSent, showChip = true }: { initial: string; note: string | null; endpoint: string; onSent: () => void; showChip?: boolean }) {
   const { t } = useT();
   const [text, setText] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -169,17 +174,19 @@ function DraftEditor({ initial, note, endpoint, onSent }: { initial: string; not
       await api(endpoint, { method: 'POST', body: { text } });
       onSent();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t.error);
+      setError(e instanceof ApiError && e.code === 'safe_mode' ? t.safeModeBlocked : t.error);
     } finally {
       setBusy(false);
     }
   };
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <div className="row">
-        <span className="chip">{t.status.draft}</span>
-        {note && <span className="muted" style={{ fontSize: 13 }}>{note}</span>}
-      </div>
+      {(showChip || note) && (
+        <div className="row">
+          {showChip && <span className="chip">{t.status.draft}</span>}
+          {note && <span className="muted" style={{ fontSize: 13 }}>{note}</span>}
+        </div>
+      )}
       <textarea className="textarea" value={text} onChange={(e) => setText(e.target.value)} aria-label={t.reply} />
       {error && <div className="error-text" role="alert">{error}</div>}
       <div>

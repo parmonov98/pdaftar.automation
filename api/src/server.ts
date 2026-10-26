@@ -234,7 +234,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
     try {
       await sendDraft(ctx, req.workspace!.id, Number((req.params as { id: string }).id), text);
     } catch (e) {
-      return reply.code(409).send({ error: (e as Error).message });
+      return reply.code(409).send(sendError(e));
     }
     return { ok: true };
   });
@@ -244,7 +244,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
     try {
       await sendCommentDraft(ctx, req.workspace!.id, Number((req.params as { id: string }).id), text);
     } catch (e) {
-      return reply.code(409).send({ error: (e as Error).message });
+      return reply.code(409).send(sendError(e));
     }
     return { ok: true };
   });
@@ -346,6 +346,12 @@ export function buildServer(ctx: AppContext): FastifyInstance {
   }
 
   return app;
+}
+
+/** Send failures carry a code the web app translates. */
+function sendError(e: unknown): { error: string; code: string } {
+  const message = e instanceof Error ? e.message : String(e);
+  return { error: message, code: message.startsWith('Safe mode') ? 'safe_mode' : message === 'Draft not found' ? 'not_found' : 'send_failed' };
 }
 
 function ownedConversation(ctx: AppContext, workspaceId: number, id: number) {

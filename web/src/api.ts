@@ -2,6 +2,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code: string | null = null,
   ) {
     super(message);
   }
@@ -21,7 +22,10 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   } catch {
     data = null;
   }
-  if (!res.ok) throw new ApiError((data as { error?: string } | null)?.error ?? `HTTP ${res.status}`, res.status);
+  if (!res.ok) {
+    const err = data as { error?: string; code?: string } | null;
+    throw new ApiError(err?.error ?? `HTTP ${res.status}`, res.status, err?.code ?? null);
+  }
   return data as T;
 }
 
