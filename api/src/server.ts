@@ -7,6 +7,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { replyFor } from './ai/agent.js';
+import { AiBudgetError } from './ai/budget.js';
 import type { WorkspaceSettings } from './ai/replies.js';
 import { currentMonth } from './db.js';
 import { authorizeUrl, exchangeCode, InstagramClient } from './instagram/client.js';
@@ -45,6 +46,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
 
   app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
     if (err instanceof z.ZodError) return reply.code(422).send({ error: 'validation', details: err.issues });
+    if (err instanceof AiBudgetError) return reply.code(429).send({ error: err.message, code: 'ai_budget' });
     const status = err.statusCode && err.statusCode < 500 ? err.statusCode : err instanceof PdaftarError ? 502 : 500;
     if (status >= 500) ctx.log('request failed', { error: err.message });
     return reply.code(status).send({ error: status >= 500 ? 'Something went wrong' : err.message });
@@ -64,7 +66,13 @@ export function buildServer(ctx: AppContext): FastifyInstance {
     req.workspace = ws;
   };
 
-  app.get('/api/health', async () => ({ ok: true, ai: ctx.models.name, safeMode: ctx.config.instagram.safeMode }));
+  app.get('/api/health', async () => ({
+    ok: true,
+    ai: ctx.models.name,
+    safeMode: ctx.config.instagram.safeMode,
+    engine: ctx.config.replyEngine,
+    aiCallsToday: 'usedToday' in ctx.models ? (ctx.models as { usedToday(): number }).usedToday() : null,
+  }));
 
   app.post('/api/session', async (req, reply) => {
     const { token } = z.object({ token: z.string().trim().min(10).max(200) }).parse(req.body);
@@ -271,6 +279,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
       try {
         transcript = await ctx.models.transcribe(Buffer.from(body.audioData.split(',')[1] ?? '', 'base64'));
       } catch (e) {
+        if (e instanceof AiBudgetError) throw e;
         ctx.log('playground transcribe failed', { error: String(e) });
         return reply.code(502).send({ error: 'Voice note could not be transcribed', code: 'transcribe_failed' });
       }

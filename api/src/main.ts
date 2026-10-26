@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { BudgetedModels } from './ai/budget.js';
 import { createModels } from './ai/models.js';
 import { loadConfig } from './config.js';
 import { openDb } from './db.js';
@@ -14,10 +15,12 @@ if (Buffer.from(config.encryptionKey, 'base64').length !== 32) {
   process.exit(1);
 }
 
+const db = openDb(join(config.dataDir, 'automation.sqlite'));
 const ctx: AppContext = {
   config,
-  db: openDb(join(config.dataDir, 'automation.sqlite')),
-  models: createModels(config.ai),
+  db,
+  // Every model call counts against a daily budget so the API credits can't be burned.
+  models: new BudgetedModels(createModels(config.ai), db, config.ai.dailyCallLimit),
   fetchImpl: fetch,
   log: (msg, extra) => console.log(JSON.stringify({ t: new Date().toISOString(), msg, ...extra })),
 };

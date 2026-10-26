@@ -1,5 +1,7 @@
 import { searchWithFallbacks } from '../ai/search.js';
 import { replyFor } from '../ai/agent.js';
+import { AiBudgetError } from '../ai/budget.js';
+import { fallbackReply } from '../ai/replies.js';
 import { bumpUsage } from '../db.js';
 import type { IncomingComment, IncomingEvent, IncomingMessage } from '../instagram/webhook.js';
 import type { PdProduct } from '../pdaftar/client.js';
@@ -14,6 +16,26 @@ import {
   settingsOf,
 } from './context.js';
 import { enqueue } from './jobs.js';
+
+type Decision = Awaited<ReturnType<typeof replyFor>>;
+
+/** Over the daily AI budget, nothing is generated: a polite holding reply waits for a person. */
+async function budgetSafe(ctx: AppContext, channel: 'comment' | 'dm', run: () => Promise<Decision>): Promise<Decision> {
+  try {
+    return await run();
+  } catch (e) {
+    if (!(e instanceof AiBudgetError)) throw e;
+    ctx.log('ai budget reached', { limit: e.limit });
+    return {
+      reply: fallbackReply('uz', channel),
+      handoff: true,
+      reason: 'daily AI budget reached',
+      products: [],
+      understanding: { intent: 'other', productQuery: null, language: 'uz', needsHuman: true, confidence: 0, customerName: null, customerPhone: null, quantity: null },
+      order: null,
+    };
+  }
+}
 
 /** Records a webhook event once (Meta retries) and queues the work. */
 export function acceptEvent(ctx: AppContext, ev: IncomingEvent): boolean {
@@ -70,7 +92,7 @@ export async function handleComment(ctx: AppContext, payload: Record<string, unk
   const pd = pdaftarFor(ctx, ws);
   const shop = await pd.shop();
   const contextProducts = await productsForMedia(ctx, ws.id, ev.mediaId, (id) => pd.product(id));
-  const decision = await replyFor(ctx.models, {
+  const decision = await budgetSafe(ctx, 'comment', () => replyFor(ctx.models, {
     channel: 'comment',
     text: ev.text,
     imageUrls: [],
@@ -79,7 +101,7 @@ export async function handleComment(ctx: AppContext, payload: Record<string, unk
     settings,
     history: [],
     searchCatalog: (q) => searchWithFallbacks((v) => pd.products({ search: v, perPage: 5 }), q),
-  }, ctx.config.replyEngine);
+  }, ctx.config.replyEngine));
   bumpUsage(ctx.db, ws.id, 'ai_calls', 2);
 
   const meta = JSON.stringify({ intent: decision.understanding.intent, products: decision.products.map((p) => p.id), reason: decision.reason });
@@ -165,7 +187,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
 
   const pd = pdaftarFor(ctx, ws);
   const shop = await pd.shop();
-  const decision = await replyFor(ctx.models, {
+  const decision = await budgetSafe(ctx, 'dm', () => replyFor(ctx.models, {
     channel: 'dm',
     text,
     imageUrls: ev.imageUrls,
@@ -174,7 +196,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
     settings,
     history,
     searchCatalog: (q) => searchWithFallbacks((v) => pd.products({ search: v, perPage: 5 }), q),
-  }, ctx.config.replyEngine);
+  }, ctx.config.replyEngine));
   bumpUsage(ctx.db, ws.id, 'ai_calls', (ev.imageUrls.length ? 3 : 2) + (voice ? 1 : 0));
 
   let replyText = decision.reply;

@@ -36,6 +36,8 @@ export interface Config {
     segmentModel: string;
     transcribeModel: string;
     timeoutMs: number;
+    /** Max model calls per UTC day across all shops (0 = unlimited). Protects the API credits. */
+    dailyCallLimit: number;
   };
 
   instagram: {
@@ -81,6 +83,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       segmentModel: env.META_SEGMENT_MODEL ?? 'sam-3.1',
       transcribeModel: env.META_TRANSCRIBE_MODEL ?? 'muse-voice-transcribe-1.0',
       timeoutMs: Number(env.META_TIMEOUT_MS ?? 30000),
+      dailyCallLimit: Number(env.AI_DAILY_CALL_LIMIT ?? 3000),
     },
     instagram: {
       appId: env.IG_APP_ID ?? '',
