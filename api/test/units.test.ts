@@ -137,6 +137,7 @@ describe('helpers', () => {
       id: 5, name: 'X', price: 12000, currency: 'UZS', stock: 3, unit: null, images: ['u'], visible: true, showQuantity: true, orderable: true,
     });
     const real = normaliseProduct({ id: 7, name: 'Y', price: 5000, currency: 'UZS', stock_quantity: 4, show_quantity_to_clients: false, is_visible_to_clients: true, is_orderable: true, unit: 'dona', image: 'a', images: ['a', 'b'] });
+    expect(normaliseProduct({ id: 8, name: 'cola', title: 'Kola 1.5 L' }).name).toBe('Kola 1.5 L');
     expect(real).toMatchObject({ stock: 4, showQuantity: false, visible: true, orderable: true, unit: 'dona', images: ['a', 'b'] });
   });
 });

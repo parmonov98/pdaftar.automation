@@ -158,7 +158,7 @@ export async function decideReply(models: AiModels, ctx: ReplyContext): Promise<
   products = products.filter((p) => p.visible);
   if (ctx.imageUrls[0] && products.length > 1) products = await pickByPhoto(models, ctx.imageUrls[0], products);
 
-  const showPrice = ctx.channel === 'dm' || ctx.settings.publicPrice;
+  const showPrice = ctx.shop.showPrices && (ctx.channel === 'dm' || ctx.settings.publicPrice);
   const facts = {
     channel: ctx.channel,
     show_price: showPrice,
@@ -169,8 +169,8 @@ export async function decideReply(models: AiModels, ctx: ReplyContext): Promise<
     products: products.slice(0, 3).map((p) => ({
       id: p.id,
       name: p.name,
-      price: p.price,
-      price_text: p.price !== null ? formatPrice(p.price, p.currency) : null,
+      price: showPrice ? p.price : null,
+      price_text: showPrice && p.price !== null ? formatPrice(p.price, p.currency) : null,
       currency: p.currency,
       // The count is only shared when the owner shows it to customers.
       stock: p.showQuantity ? p.stock : null,

@@ -127,6 +127,19 @@ describe('DM replies', () => {
     expect(ctx.db.prepare('SELECT status, handled_by FROM messages WHERE id = ?').get(draft.id)).toEqual({ status: 'sent', handled_by: 'human' });
   });
 
+  it('never shows prices when the shop hides prices publicly', async () => {
+    const hidden = (url: URL, init?: RequestInit) =>
+      url.pathname.endsWith('/automation/shop')
+        ? json({ data: { id: 729, name: 'THEDEVS MCHJ', currency: 'UZS', show_prices_publicly: false, order_url: null } })
+        : pdaftarRoutes()(url, init);
+    const f = fakeFetch([hidden, instagramRoutes({ username: 'pdaftar_uz' })]);
+    const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz' });
+    seed(ctx, { autoSend: true });
+    await handleMessage(ctx, dm('futbolka narxi qancha?', 'm-p'));
+    const out = ctx.db.prepare(`SELECT text FROM messages WHERE direction = 'out'`).get() as { text: string };
+    expect(out.text).not.toMatch(/189/);
+  });
+
   it('never offers a product the owner hid from customers', async () => {
     const f = fakeFetch([pdaftarRoutes(), instagramRoutes({ username: 'pdaftar_uz' })]);
     const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz' });

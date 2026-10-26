@@ -179,7 +179,21 @@ export function drawOverlay(slide: Slide, input: RenderInput): Buffer {
   if (slide.stockLine) {
     ctx.font = '44px PdMedium';
     ctx.fillStyle = '#C4B5FD';
-    ctx.fillText(slide.stockLine, W / 2, y);
+    // A drawn check mark: the bundled font has no ✓ glyph.
+    const tw = ctx.measureText(slide.stockLine).width;
+    const x0 = W / 2 - (tw + 52) / 2;
+    ctx.textAlign = 'left';
+    ctx.fillText(slide.stockLine, x0 + 52, y);
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = '#C4B5FD';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x0 + 4, y + 26);
+    ctx.lineTo(x0 + 16, y + 38);
+    ctx.lineTo(x0 + 38, y + 12);
+    ctx.stroke();
   }
 
   // Call to action bar.

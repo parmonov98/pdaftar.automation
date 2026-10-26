@@ -12,6 +12,8 @@ export interface PdShop {
   phone: string | null;
   address: string | null;
   orderUrl: string | null;
+  /** Shop-level switch: when false, prices are never shown to customers. */
+  showPrices: boolean;
 }
 
 export interface PdProduct {
@@ -165,6 +167,7 @@ function normaliseShop(raw: unknown): PdShop {
     phone: str(s.phone),
     address: str(s.address),
     orderUrl: str(s.order_url ?? s.catalog_url ?? s.public_url),
+    showPrices: s.show_prices_publicly === undefined ? true : s.show_prices_publicly === true,
   };
 }
 
@@ -174,7 +177,8 @@ export function normaliseProduct(raw: unknown): PdProduct {
   const images = Array.isArray(p.images) ? p.images : p.image ? [p.image] : p.image_url ? [p.image_url] : [];
   return {
     id: Number(p.id),
-    name: str(p.name) ?? '',
+    // The owner's customer-facing catalog title wins over the internal name.
+    name: str(p.title) ?? str(p.name) ?? '',
     price: typeof price === 'object' && price !== null ? num((price as { amount?: unknown }).amount) : num(price ?? p.sale_price),
     currency:
       str(p.currency) ??
