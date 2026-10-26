@@ -129,7 +129,7 @@ function Shell({ me, path, onChange }: { me: Me; path: string; onChange: () => v
           <span className="logo-dot" aria-hidden>
             p
           </span>
-          <span>{t.appName}</span>
+          <span className="brand-name">{t.appName}</span>
         </div>
         <nav className="nav" aria-label="Main">
           {links.map((l) => (
@@ -148,7 +148,7 @@ function Shell({ me, path, onChange }: { me: Me; path: string; onChange: () => v
           ))}
         </nav>
         <div className="side-extra stack" style={{ marginTop: 'auto' }}>
-          <div>
+          <div className="side-info">
             <div style={{ fontWeight: 700 }}>{me.shop.name}</div>
             <div className="muted" style={{ fontSize: 13 }}>
               {me.instagram ? `@${me.instagram.username}` : t.connectFirst}
@@ -163,7 +163,7 @@ function Shell({ me, path, onChange }: { me: Me; path: string; onChange: () => v
           <button className="btn small" onClick={signOut}>
             {t.signOut}
           </button>
-          <div className="muted" style={{ fontSize: 12 }}>
+          <div className="side-powered muted" style={{ fontSize: 12 }}>
             {t.poweredBy}
           </div>
         </div>

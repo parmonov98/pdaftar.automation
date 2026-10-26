@@ -337,9 +337,10 @@ export function buildServer(ctx: AppContext): FastifyInstance {
   // ---- web app (SPA) ------------------------------------------------------------
   const dist = ctx.config.webDistDir;
   if (dist && existsSync(join(dist, 'index.html'))) {
-    void app.register(fastifyStatic, { root: dist, prefix: '/', wildcard: false, decorateReply: true });
+    // Wildcard serving: files from a rebuild are found without a restart.
+    void app.register(fastifyStatic, { root: dist, prefix: '/', decorateReply: true });
     app.setNotFoundHandler((req, reply) => {
-      if (req.url.startsWith('/api/') || req.url.startsWith('/webhooks/') || req.url.startsWith('/media/')) return reply.code(404).send({ error: 'Not found' });
+      if (/^\/(api|webhooks|media|assets)\//.test(req.url)) return reply.code(404).send({ error: 'Not found' });
       return reply.sendFile('index.html');
     });
   }

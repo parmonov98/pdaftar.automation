@@ -186,3 +186,25 @@ describe('promo video', () => {
     expect(() => requestPublish(ctx, 1, 1, 'cap', null)).toThrow('Connect Instagram first');
   });
 });
+
+describe('web app serving', () => {
+  it('serves files added after startup and falls back to index.html for app routes only', async () => {
+    const { mkdtempSync, writeFileSync, mkdirSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const dist = mkdtempSync(join(tmpdir(), 'dist-'));
+    writeFileSync(join(dist, 'index.html'), '<!doctype html><title>app</title>');
+    const ctx = testContext(fakeFetch([]).impl, { WEB_DIST_DIR: dist });
+    const app = buildServer(ctx);
+    await app.ready();
+    mkdirSync(join(dist, 'assets'));
+    writeFileSync(join(dist, 'assets', 'new.js'), 'console.log(1)');
+    const js = await app.inject({ method: 'GET', url: '/assets/new.js' });
+    expect(js.statusCode).toBe(200);
+    expect(js.headers['content-type']).toContain('javascript');
+    expect((await app.inject({ method: 'GET', url: '/assets/missing.js' })).statusCode).toBe(404);
+    const page = await app.inject({ method: 'GET', url: '/app/studio' });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('<title>app</title>');
+    expect((await app.inject({ method: 'GET', url: '/api/nope' })).statusCode).toBe(404);
+  });
+});

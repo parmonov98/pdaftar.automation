@@ -17,7 +17,7 @@ export function Landing({ onSignedIn }: { onSignedIn: () => void }) {
       await api('/api/session', { method: 'POST', body: { token: token.trim() } });
       onSignedIn();
     } catch (err) {
-      setError(err instanceof ApiError && err.status < 500 ? err.message : t.error);
+      setError(err instanceof ApiError && err.status === 401 ? t.tokenInvalid : t.error);
     } finally {
       setBusy(false);
     }
