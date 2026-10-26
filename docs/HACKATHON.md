@@ -86,6 +86,36 @@ pDaftar is a bookkeeping and inventory app used by thousands of Uzbek shops. It 
 | 2:10–2:40 | From the tester account, comment "narxi?" under that Reel → reply appears with that product. DM "cola bormi?" → answer. A complaint goes to "Sizga topshirildi". |
 | 2:40–3:00 | Safety + impact: never DMs first, no invented prices, owner approval. Closing line. |
 
+## Demo footage (one command)
+
+After the Meta key is installed (so the footage shows real model output):
+
+```bash
+node scripts/record-demo.mjs https://automation.pdaftar.uz <file-with-shop-token> ./demo-footage
+```
+
+It records four 1280×720 scenes in a real browser:
+1. text questions in Uzbek and Russian;
+2. a photo question and a recorded voice note;
+3. the Reels studio rendering a Reel;
+4. the inbox.
+
+Cut them together with a 15-second intro (the problem) and outro (impact); target 3:00.
+
+## X post draft (Most Viral bonus; post from the pDaftar account, tag the hackathon)
+
+> Small shops in Uzbekistan sell through Instagram DMs, and every Reel brings 50× "narxi qancha?" ("how much?").
+>
+> We built pDaftar Javob on Meta's models:
+> 🧠 Muse Spark answers with the shop's REAL prices from pDaftar (never invented)
+> 🎤 Voice notes → Muse Voice Transcribe
+> 📸 "Is this available?" photo → matched to the catalog
+> 🎬 SAM 3.1 + Muse Image turn a counter photo into a Reel, posted to the shop's own Instagram
+>
+> #MetaAIHackathon @AIatMeta @cerebral_valley
+
+Attach the rendered Reel and a 20-second screen capture of a voice note getting answered.
+
 ## Evidence to capture before submitting
 
 - Playground replies on the real catalog with `AI_PROVIDER=meta` (screenshots + timings).
