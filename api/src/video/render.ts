@@ -1,5 +1,6 @@
 import { copyFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import { FONT_BOLD, FONT_MEDIUM, runFfmpeg, withTemp } from './ffmpeg.js';
 
@@ -19,12 +20,15 @@ export interface Slide {
 
 export interface RenderInput {
   template: Template;
+  /** Background music (default on). */
+  music?: boolean;
   shopName: string;
   headline: string;
   cta: string;
   slides: Slide[];
 }
 
+const MUSIC = join(fileURLToPath(new URL('.', import.meta.url)), '../../assets/music/pdaftar-bed.m4a');
 const W = 1080;
 const H = 1920;
 const FPS = 30;
@@ -60,11 +64,15 @@ export async function renderPromo(input: RenderInput, outFile: string): Promise<
     await writeFile(list, parts.map((p) => `file '${p}'`).join('\n'));
     const joined = join(dir, 'joined.mp4');
     await runFfmpeg(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', joined]);
-    // Silent AAC track: Reels expect audio, and a fixed track keeps every player happy.
+    const total = secs * input.slides.length;
+    // Audio: pDaftar's own instrumental, looped to the video and faded; or silence.
+    const audioIn = input.music === false ? ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100'] : ['-stream_loop', '-1', '-i', MUSIC];
+    const audioFilter = input.music === false ? 'anull' : `volume=0.55,afade=t=in:st=0:d=0.6,afade=t=out:st=${Math.max(0, total - 1.2)}:d=1.2`;
     await runFfmpeg([
       '-i', joined,
-      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-      '-shortest', '-map', '0:v', '-map', '1:a',
+      ...audioIn,
+      '-filter_complex', `[1:a]${audioFilter},aresample=44100[a]`,
+      '-map', '0:v', '-map', '[a]', '-t', String(total),
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
       '-movflags', '+faststart', join(dir, 'final.mp4'),
     ]);

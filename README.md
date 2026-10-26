@@ -102,4 +102,8 @@ Startup track rules require us to separate new work from the existing product.
 
 On the pDaftar side, the integration API (per-shop token, catalog read, order create) was also built during the event: pdaftar.backend PR #2366, Oct 27.
 
+**Existing assets reused (disclosed):**
+- `api/assets/music/pdaftar-bed.m4a`: pDaftar's own original 15-second instrumental (no third-party samples, made September 2026).
+- The Roboto fonts (Apache 2.0).
+
 **Existing before the event (not part of the entry):** the pDaftar app itself. That is the shop's catalog, prices, stock and order inbox, which this project reads from and writes orders into.
