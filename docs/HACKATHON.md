@@ -2,18 +2,52 @@
 
 Track: **Startup**. Theme: **Build for Your World**. Deadline: **Nov 4, 2026, 9:00 PM ET** (Nov 5, 07:00 Tashkent). Plan to submit on Nov 4, Tashkent daytime.
 
+## Official rules that shape this entry (read in the owner's Chrome, 2026-10-27)
+
+- Themes: "Build for Your World" (ours) / "Push the Frontier".
+- **The repo must be public.** Teams have at most 4 people.
+- **Startups may build on existing products**, but must clearly identify what is new. **The demo may show only what was built during the event**, or the entry risks disqualification. See README → "What was built during the hackathon".
+- Judging:
+  - stage 1 is pass/fail: fits a theme and uses Meta models;
+  - stage 2 weights: Impact 30%, Use of Meta AI tooling 25%, Technical depth 20%, Demo 25%;
+  - the top 5 per track get live finals on Nov 9.
+- Bonus prizes we can aim for:
+  - Best Creative $5K (Muse Image) — our Reels;
+  - Most Viral $20K (X post until Nov 8);
+  - Best Agentic $5K.
+- Anti-projects include "basic RAG" and "simple image analyzers". We are neither: a multi-model pipeline with grounding checks and real actions.
+- One submission, made by an active employee of the startup (the "Representative"), listing every member.
+- License: none is required. Meta and CV get a non-exclusive licence to show the work; we keep the IP.
+
 ## Owner checklist (needs your accounts)
 
-- [ ] Claim the $150 Meta Model API credits (form in the Oct 26 Cerebral Valley email). Add a card and set the spend limit to $150.
+- [ ] Claim the $150 Meta Model API credits (form in the Oct 26 Cerebral Valley email). Add a card (there is a pre-auth hold) and set the spend limit to $150. *(A Mac session was asked to fill the form; it won't enter card details.)*
 - [ ] Create a Model API key. Put it in `~/.config/pdaftar-automation/env` on the VPS as `META_API_KEY=…`, set `AI_PROVIDER=meta`, then run `systemctl --user restart pdaftar-automation`.
-- [ ] Check every model with one command: `cd ~/pdaftar/pdaftar.automation/api && node --env-file=$HOME/.config/pdaftar-automation/env dist/meta-check.js`. It tests chat, vision, SAM 3.1 and Muse Image and never prints the key.
+- [ ] Check every model with one command: `cd ~/pdaftar/pdaftar.automation/api && node --env-file=$HOME/.config/pdaftar-automation/env dist/meta-check.js`. It tests chat, vision, SAM 3.1, Muse Image and Voice Transcribe, and never prints the key.
 - [ ] Create a Meta developer app with **Instagram API with Instagram Login**:
   - Redirect URI: `https://automation.pdaftar.uz/auth/instagram/callback`.
-  - Webhook URL: `https://automation.pdaftar.uz/webhooks/instagram`. The verify token is `IG_WEBHOOK_VERIFY_TOKEN` in the env file. Fields: `comments`, `messages`.
-  - Add @pdaftar.uz and the pdaftar_uz test account as app roles (Instagram testers).
-  - Put `IG_APP_ID` and `IG_APP_SECRET` in the env file and restart.
-- [ ] Read the official rules on the participant page. Confirm: pre-event code, a public repo or not, demo video length, licence.
-- [ ] Decide whether the GitHub repo is public (if the rules require it). The repo is not pushed yet; creating it was left for you.
+  - Webhook URL: `https://automation.pdaftar.uz/webhooks/instagram`, with the verify token from `IG_WEBHOOK_VERIFY_TOKEN` in the env file. Fields: `comments`, `messages`.
+  - Add @pdaftar.uz and pdaftar_uz as app roles. Put `IG_APP_ID` and `IG_APP_SECRET` in the env file and restart.
+- [ ] Merge pdaftar.backend PR #2366 (needs a human click). Then set `AUTOMATION_INTEGRATION_ENABLED=true` on dev-api and point `PDAFTAR_API_BASE_URL` back to dev-api.
+- [ ] **Make github.com/parmonov98/pdaftar.automation public** before submitting (required).
+- [ ] Record the 3-minute video. Show only the new work; pDaftar appears only as "the catalog we read from".
+
+## Submission form answers (draft, paste into the CV form)
+
+- **Team name:** pDaftar
+- **Track:** Startups Track
+- **Problem statement:** Build for Your World
+- **Public GitHub repository:** https://github.com/parmonov98/pdaftar.automation
+- **Project description:** pDaftar Javob answers every Instagram comment, DM, photo and voice note for small shops in Uzbekistan in seconds, using the shop's real prices and stock from pDaftar. It never invents a price, it hands hard cases to the owner, and it turns the shop's products into promo Reels published to the shop's own Instagram. Comments under those Reels are answered with exactly the products shown.
+- **Use of Meta products:**
+  - Muse Spark 1.3: understands each comment or DM (intent, product, language, phone/name) and writes the grounded reply in Uzbek or Russian;
+  - Muse Spark vision: matches a customer's photo against the shop's catalog photos;
+  - Muse Voice Transcribe: turns voice notes into text;
+  - SAM 3.1: finds and crops the product in the owner's phone photo;
+  - Muse Image: places that exact product in a clean studio scene for the Reel;
+  - Muse Spark: writes the Reel caption;
+  - the Instagram Platform API (Meta): comments, DMs and Reel publishing.
+- **Why Meta's models matter:** the whole loop is one family of models: understanding mixed Uzbek/Russian text, photos and voice; segmenting real-world product photos; generating clean product imagery. Running it all through one API lets a small shop get a sales assistant and a content studio at a cost that fits Uzbek SMB budgets. The SAM 3.1 + Muse Image pair is what turns a cluttered counter photo into a usable ad without the product being redrawn.
 
 ## Write-up (draft)
 

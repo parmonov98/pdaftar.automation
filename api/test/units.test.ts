@@ -66,7 +66,15 @@ describe('parseWebhook', () => {
         },
       ],
     });
-    expect(events).toEqual([{ kind: 'message', accountId: '178', senderId: '55', mid: 'a', text: 'salom', imageUrls: ['https://x/i.jpg'], timestamp: 5 }]);
+    expect(events).toEqual([{ kind: 'message', accountId: '178', senderId: '55', mid: 'a', text: 'salom', imageUrls: ['https://x/i.jpg'], audioUrls: [], timestamp: 5 }]);
+  });
+
+  it('keeps voice notes that have no text', () => {
+    const events = parseWebhook({
+      object: 'instagram',
+      entry: [{ id: '178', messaging: [{ sender: { id: '55' }, message: { mid: 'v', attachments: [{ type: 'audio', payload: { url: 'https://x/a.mp4' } }] } }] }],
+    });
+    expect(events).toMatchObject([{ kind: 'message', text: '', audioUrls: ['https://x/a.mp4'] }]);
   });
 
   it('ignores other objects', () => {
@@ -139,5 +147,23 @@ describe('helpers', () => {
     const real = normaliseProduct({ id: 7, name: 'Y', price: 5000, currency: 'UZS', stock_quantity: 4, show_quantity_to_clients: false, is_visible_to_clients: true, is_orderable: true, unit: 'dona', image: 'a', images: ['a', 'b'] });
     expect(normaliseProduct({ id: 8, name: 'cola', title: 'Kola 1.5 L' }).name).toBe('Kola 1.5 L');
     expect(real).toMatchObject({ stock: 4, showQuantity: false, visible: true, orderable: true, unit: 'dona', images: ['a', 'b'] });
+  });
+});
+
+describe('voice notes', () => {
+  it('converts AAC-in-MP4 (Instagram voice notes) to 16 kHz mono WAV', async () => {
+    const { runFfmpeg, toWav, withTemp } = await import('../src/video/ffmpeg.js');
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const m4a = await withTemp(async (dir) => {
+      const out = join(dir, 'note.m4a');
+      await runFfmpeg(['-f', 'lavfi', '-i', 'sine=frequency=440:duration=1', '-c:a', 'aac', out]);
+      return readFile(out);
+    });
+    const wav = await toWav(m4a);
+    expect(wav.subarray(0, 4).toString()).toBe('RIFF');
+    expect(wav.subarray(8, 12).toString()).toBe('WAVE');
+    expect(wav.readUInt16LE(22)).toBe(1); // mono
+    expect(wav.readUInt32LE(24)).toBe(16000);
   });
 });

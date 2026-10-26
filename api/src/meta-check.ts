@@ -57,5 +57,17 @@ const results = [
     const img = await models.stageProduct(photo, 'Place this exact object on a clean white studio background.');
     return img ? `image ${img.length} bytes` : 'no image returned';
   }),
+  await step(`transcribe ${cfg.ai.transcribeModel}`, async () => {
+    const { runFfmpeg, withTemp } = await import('./video/ffmpeg.js');
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const tone = await withTemp(async (dir) => {
+      const out = join(dir, 'tone.m4a');
+      await runFfmpeg(['-f', 'lavfi', '-i', 'sine=frequency=300:duration=2', '-c:a', 'aac', out]);
+      return readFile(out);
+    });
+    const text = await models.transcribe(tone);
+    return `endpoint ok; transcript of a test tone: ${JSON.stringify(text)}`;
+  }),
 ];
 process.exit(results.every(Boolean) ? 0 : 1);

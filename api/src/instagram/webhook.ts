@@ -22,6 +22,8 @@ export interface IncomingMessage {
   mid: string;
   text: string;
   imageUrls: string[];
+  /** Voice notes and other audio attachments. */
+  audioUrls: string[];
   timestamp: number;
 }
 
@@ -78,7 +80,10 @@ export function parseWebhook(body: unknown): IncomingEvent[] {
       const imageUrls = (msg.attachments ?? [])
         .filter((a) => a.type === 'image' && a.payload?.url)
         .map((a) => a.payload!.url!);
-      if (!msg.text && imageUrls.length === 0) continue;
+      const audioUrls = (msg.attachments ?? [])
+        .filter((a) => a.type === 'audio' && a.payload?.url)
+        .map((a) => a.payload!.url!);
+      if (!msg.text && imageUrls.length === 0 && audioUrls.length === 0) continue;
       out.push({
         kind: 'message',
         accountId: String(m.recipient?.id ?? accountId),
@@ -86,6 +91,7 @@ export function parseWebhook(body: unknown): IncomingEvent[] {
         mid: msg.mid,
         text: msg.text ?? '',
         imageUrls,
+        audioUrls,
         timestamp: m.timestamp ?? Date.now(),
       });
     }

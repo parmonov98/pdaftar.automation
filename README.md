@@ -5,6 +5,7 @@ Instagram sales assistant for small shops in Uzbekistan, built on Meta's models.
 - **Answers comments and DMs in seconds**, in Uzbek or Russian, with the shop's **real prices and stock** from its pDaftar catalog.
   It never invents a price: every number in a reply is checked against the catalog before it can be sent.
 - **Customer sends a photo** of a product → the vision model finds that product in the catalog.
+- **Customer sends a voice note**: Muse Voice Transcribe turns it into text and the same grounded pipeline answers. If it can't be understood, a person gets it.
 - **Promo Reels from the shop's own products.** SAM 3.1 finds the product in the owner's phone photo, Muse Image puts it in a clean studio scene, and Muse writes the caption. The video is rendered and posted as a Reel to the shop's **own** Instagram account.
 - **Comments under a published Reel** are answered with exactly the products in that Reel.
 - **Safe by default:**
@@ -25,6 +26,7 @@ Built for the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026), Start
 | Find and crop the product in a phone photo | `sam-3.1` |
 | Clean studio scene around the exact product | `muse-image-1.0` (edits, product passed in `images[]`) |
 | Reel caption + hashtags | `muse-spark-1.3` |
+| Voice notes in DMs (very common in Uzbekistan) → text, then the normal grounded reply | `muse-voice-transcribe-1.0` |
 
 Customer messages are never sent to the discounted "contributor" variants, which Meta may train on. The code refuses them.
 
@@ -77,4 +79,17 @@ npm test -w web
 
 ## What was built during the hackathon
 
-Everything in this repository was written during the event window (see the git history, which starts on 2026-10-27). The pDaftar platform it connects to existed before the event. The only pDaftar-side addition is the small integration API (catalog read, order create, per-shop token).
+Startup track rules require us to separate new work from the existing product.
+
+**New, built during the event (Oct 26 – Nov 4, 2026). Everything in this repository** (first commit: 2026-10-26 16:48 ET, after kickoff):
+- Instagram webhook intake, the job queue, and safe mode / draft approval;
+- the grounded reply engine on Muse Spark: intent, catalog lookup, price-grounding check, hand-off;
+- photo matching with Muse Spark vision;
+- voice-note transcription with Muse Voice Transcribe;
+- the promo Reel pipeline: SAM 3.1 crop → Muse Image scene → Muse Spark caption → rendered Reel → Instagram publishing;
+- answering comments under a Reel with that Reel's products;
+- the web app: inbox, Reels studio, playground, settings.
+
+On the pDaftar side, the integration API (per-shop token, catalog read, order create) was also built during the event: pdaftar.backend PR #2366, Oct 27.
+
+**Existing before the event (not part of the entry):** the pDaftar app itself. That is the shop's catalog, prices, stock and order inbox, which this project reads from and writes orders into.

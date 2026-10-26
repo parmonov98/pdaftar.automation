@@ -20,6 +20,8 @@ export interface AiModels {
   segmentProduct(image: Buffer, hint: string): Promise<Buffer | null>;
   /** Places the product cut-out into a clean scene. Returns an image, or null if unsupported. */
   stageProduct(cutout: Buffer, prompt: string): Promise<Buffer | null>;
+  /** Speech to text for a voice note (any format ffmpeg reads). Null if unsupported or empty. */
+  transcribe(audio: Buffer): Promise<string | null>;
 }
 
 export class AiError extends Error {}
@@ -102,6 +104,26 @@ export class MetaModels implements AiModels {
       response_format: 'b64_json',
     });
     return firstImage(res);
+  }
+
+  /** Muse Voice Transcribe. The endpoint takes WAV only, so the note is converted first. */
+  async transcribe(audio: Buffer): Promise<string | null> {
+    if (!this.cfg.transcribeModel) return null;
+    const { toWav } = await import('../video/ffmpeg.js');
+    const wav = await toWav(audio);
+    const form = new FormData();
+    form.append('request', new Blob([JSON.stringify({ model: this.cfg.transcribeModel, audioEncoding: 'WAV', mode: 'PUSH_TO_TALK' })], { type: 'application/json' }));
+    form.append('audio', new Blob([new Uint8Array(wav)], { type: 'audio/wav' }), 'voice.wav');
+    const res = await this.fetchImpl(`${this.cfg.baseUrl}/asr/transcribe`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.cfg.apiKey}`, Accept: 'text/plain' },
+      body: form,
+      signal: AbortSignal.timeout(this.cfg.timeoutMs * 2),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new AiError(`Meta transcribe ${res.status}: ${text.slice(0, 300)}`);
+    const transcript = text.trim();
+    return transcript || null;
   }
 
   private async post(path: string, body: unknown): Promise<unknown> {
@@ -217,6 +239,12 @@ export class MockModels implements AiModels {
 
   async stageProduct(): Promise<Buffer | null> {
     return null;
+  }
+
+  /** Tests put the transcript in the audio bytes themselves: "TRANSCRIPT:<text>". */
+  async transcribe(audio: Buffer): Promise<string | null> {
+    const s = audio.toString('utf8');
+    return s.startsWith('TRANSCRIPT:') ? s.slice('TRANSCRIPT:'.length) : null;
   }
 }
 

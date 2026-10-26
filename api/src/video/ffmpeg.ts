@@ -50,3 +50,14 @@ export async function cropImage(
     return readFile(out);
   });
 }
+
+/** Any audio ffmpeg reads (Instagram voice notes are AAC in MP4) → 16 kHz mono PCM WAV. */
+export async function toWav(audio: Buffer): Promise<Buffer> {
+  return withTemp(async (dir) => {
+    const src = join(dir, 'src');
+    const out = join(dir, 'out.wav');
+    await writeFile(src, audio);
+    await runFfmpeg(['-i', src, '-t', '600', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', out]);
+    return readFile(out);
+  });
+}

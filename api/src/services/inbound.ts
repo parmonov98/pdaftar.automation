@@ -121,9 +121,25 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
     conv = ctx.db.prepare('SELECT * FROM conversations WHERE ig_account_id = ? AND igsid = ?').get(acc.id, ev.senderId) as typeof conv;
   }
   if (!conv) return;
+  // Voice notes: Muse Voice Transcribe turns them into text, then the normal pipeline runs.
+  let text = ev.text;
+  let voice = false;
+  for (const url of (ev.audioUrls ?? []).slice(0, 1)) {
+    try {
+      const res = await ctx.fetchImpl(url, { signal: AbortSignal.timeout(20000) });
+      if (!res.ok) throw new Error(`audio download ${res.status}`);
+      const transcript = await ctx.models.transcribe(Buffer.from(await res.arrayBuffer()));
+      if (transcript) {
+        text = [text, transcript].filter(Boolean).join('\n');
+        voice = true;
+      }
+    } catch (e) {
+      ctx.log('transcribe failed', { error: String(e) });
+    }
+  }
   ctx.db
     .prepare(`INSERT OR IGNORE INTO messages (conversation_id, direction, mid, text, attachments_json, status) VALUES (?, 'in', ?, ?, ?, 'received')`)
-    .run(conv.id, ev.mid, ev.text, JSON.stringify(ev.imageUrls));
+    .run(conv.id, ev.mid, voice ? `🎤 ${text}` : text, JSON.stringify([...ev.imageUrls, ...(ev.audioUrls ?? [])]));
   ctx.db.prepare(`UPDATE conversations SET last_inbound_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`).run(conv.id);
 
   if (!settings.replyToDms || !conv.ai_enabled || conv.status === 'handoff') return;
@@ -137,11 +153,20 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
     .filter((m) => m.text)
     .map((m) => ({ role: m.direction === 'in' ? ('customer' as const) : ('shop' as const), text: m.text! }));
 
+  // A voice note we could not understand goes to a person, not to the model.
+  if (!text.trim() && !ev.imageUrls.length) {
+    ctx.db.prepare(`UPDATE conversations SET status = 'handoff' WHERE id = ?`).run(conv.id);
+    ctx.db
+      .prepare(`INSERT INTO messages (conversation_id, direction, text, status, handled_by, ai_meta_json) VALUES (?, 'out', ?, 'draft', 'ai', ?)`)
+      .run(conv.id, "Ovozli xabaringiz uchun rahmat! Tez orada javob beramiz.", JSON.stringify({ reason: 'voice note not transcribed' }));
+    return;
+  }
+
   const pd = pdaftarFor(ctx, ws);
   const shop = await pd.shop();
   const decision = await decideReply(ctx.models, {
     channel: 'dm',
-    text: ev.text,
+    text,
     imageUrls: ev.imageUrls,
     contextProducts: [],
     shop,
@@ -149,7 +174,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
     history,
     searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
   });
-  bumpUsage(ctx.db, ws.id, 'ai_calls', ev.imageUrls.length ? 3 : 2);
+  bumpUsage(ctx.db, ws.id, 'ai_calls', (ev.imageUrls.length ? 3 : 2) + (voice ? 1 : 0));
 
   let replyText = decision.reply;
   let orderNote: string | null = null;
@@ -172,6 +197,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
   }
 
   const meta = JSON.stringify({
+    voice,
     intent: decision.understanding.intent,
     products: decision.products.map((p) => p.id),
     reason: decision.reason,

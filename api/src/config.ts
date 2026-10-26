@@ -32,6 +32,7 @@ export interface Config {
     visionModel: string;
     imageModel: string;
     segmentModel: string;
+    transcribeModel: string;
     timeoutMs: number;
   };
 
@@ -75,6 +76,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       visionModel: env.META_VISION_MODEL ?? env.META_TEXT_MODEL ?? 'muse-spark-1.3',
       imageModel: env.META_IMAGE_MODEL ?? 'muse-image-1.0',
       segmentModel: env.META_SEGMENT_MODEL ?? 'sam-3.1',
+      transcribeModel: env.META_TRANSCRIBE_MODEL ?? 'muse-voice-transcribe-1.0',
       timeoutMs: Number(env.META_TIMEOUT_MS ?? 30000),
     },
     instagram: {

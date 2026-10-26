@@ -87,7 +87,7 @@ describe('webhooks', () => {
 });
 
 describe('DM replies', () => {
-  const dm = (text: string, mid = 'm-1') => ({ kind: 'message', accountId: '178', senderId: '55', mid, text, imageUrls: [], timestamp: 1 });
+  const dm = (text: string, mid = 'm-1') => ({ kind: 'message', accountId: '178', senderId: '55', mid, text, imageUrls: [], audioUrls: [], timestamp: 1 });
 
   it('in safe mode, a stranger gets a grounded draft and nothing is sent', async () => {
     const f = fakeFetch([pdaftarRoutes(), instagramRoutes({ username: 'stranger' })]);
@@ -148,6 +148,28 @@ describe('DM replies', () => {
     const out = ctx.db.prepare(`SELECT text FROM messages WHERE direction = 'out'`).get() as { text: string };
     expect(out.text).not.toContain('Yashirin');
     expect(out.text).not.toContain('99 000');
+  });
+
+  it('a voice note is transcribed and answered like text', async () => {
+    const voice = (url: URL) => (url.hostname === 'voice.test' ? new Response(url.pathname === '/ok.mp4' ? 'TRANSCRIPT:cola narxi qancha' : 'noise') : undefined);
+    const f = fakeFetch([voice, pdaftarRoutes(), instagramRoutes({ username: 'pdaftar_uz' })]);
+    const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz' });
+    seed(ctx, { autoSend: true });
+    await handleMessage(ctx, { ...dm('', 'm-v'), audioUrls: ['https://voice.test/ok.mp4'] });
+    const rows = ctx.db.prepare('SELECT direction, text, status FROM messages ORDER BY id').all() as { direction: string; text: string; status: string }[];
+    expect(rows[0]!.text).toBe('🎤 cola narxi qancha');
+    expect(rows[1]).toMatchObject({ direction: 'out', status: 'sent' });
+    expect(rows[1]!.text).toContain("14 000 so'm");
+  });
+
+  it('a voice note we cannot understand goes to a person', async () => {
+    const voice = (url: URL) => (url.hostname === 'voice.test' ? new Response('noise') : undefined);
+    const f = fakeFetch([voice, pdaftarRoutes(), instagramRoutes({ username: 'pdaftar_uz' })]);
+    const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz' });
+    seed(ctx, { autoSend: true });
+    await handleMessage(ctx, { ...dm('', 'm-v2'), audioUrls: ['https://voice.test/x.mp4'] });
+    expect(ctx.db.prepare('SELECT status FROM conversations').get()).toEqual({ status: 'handoff' });
+    expect(f.calls.some((c) => c.url.endsWith('/178/messages'))).toBe(false);
   });
 
   it('a person asking for an operator is handed off', async () => {
