@@ -27,7 +27,8 @@ const TOOLS: ToolSpec[] = [
     type: 'function',
     function: {
       name: 'search_catalog',
-      description: "Search the shop's catalog by product name in the customer's words (Uzbek, Russian, brand names). Returns up to 5 products with price and availability.",
+      description:
+        "Search the shop's catalog by product name. Catalog names are mostly Uzbek Latin script (e.g. 'kola 1.5L'), so prefer Latin spellings; Cyrillic and Russian queries are also retried automatically. Returns up to 5 products with price and availability.",
       parameters: { type: 'object', properties: { query: { type: 'string', description: 'Short product name, e.g. "coca cola 1.5"' } }, required: ['query'] },
     },
   },

@@ -1,3 +1,4 @@
+import { searchWithFallbacks } from './ai/search.js';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
@@ -294,7 +295,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
       shop,
       settings: settingsOf(ws),
       history: [],
-      searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
+      searchCatalog: (q) => searchWithFallbacks((v) => pd.products({ search: v, perPage: 5 }), q),
     }, ctx.config.replyEngine);
     return {
       reply: d.reply,

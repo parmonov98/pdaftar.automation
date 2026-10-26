@@ -167,3 +167,18 @@ describe('voice notes', () => {
     expect(wav.readUInt32LE(24)).toBe(16000);
   });
 });
+
+describe('catalog search fallbacks', () => {
+  it('transliterates and stems', async () => {
+    const { queryVariants, searchWithFallbacks, toLatin, toCyrillic } = await import('../src/ai/search.js');
+    expect(toLatin('Колу')).toBe('kolu');
+    expect(toLatin('ўзбекча')).toBe("o'zbekcha");
+    expect(toCyrillic("qora futbolka")).toBe('қора футболка');
+    expect(queryVariants('колу')).toEqual(['колу', 'kolu', 'кол', 'kol']);
+    const catalog = [{ name: 'kola 1.5L' }, { name: 'Qora futbolka XL' }];
+    const search = async (q: string) => catalog.filter((p) => p.name.toLowerCase().includes(q)) as never[];
+    expect(await searchWithFallbacks(search, 'колу')).toEqual([{ name: 'kola 1.5L' }]);
+    expect(await searchWithFallbacks(search, 'қора футболка')).toEqual([{ name: 'Qora futbolka XL' }]);
+    expect(await searchWithFallbacks(search, 'velosiped')).toEqual([]);
+  });
+});

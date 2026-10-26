@@ -1,3 +1,4 @@
+import { searchWithFallbacks } from '../ai/search.js';
 import { replyFor } from '../ai/agent.js';
 import { bumpUsage } from '../db.js';
 import type { IncomingComment, IncomingEvent, IncomingMessage } from '../instagram/webhook.js';
@@ -77,7 +78,7 @@ export async function handleComment(ctx: AppContext, payload: Record<string, unk
     shop,
     settings,
     history: [],
-    searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
+    searchCatalog: (q) => searchWithFallbacks((v) => pd.products({ search: v, perPage: 5 }), q),
   }, ctx.config.replyEngine);
   bumpUsage(ctx.db, ws.id, 'ai_calls', 2);
 
@@ -172,7 +173,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
     shop,
     settings,
     history,
-    searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
+    searchCatalog: (q) => searchWithFallbacks((v) => pd.products({ search: v, perPage: 5 }), q),
   }, ctx.config.replyEngine);
   bumpUsage(ctx.db, ws.id, 'ai_calls', (ev.imageUrls.length ? 3 : 2) + (voice ? 1 : 0));
 
