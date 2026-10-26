@@ -97,6 +97,9 @@ describe('DM replies', () => {
     const out = ctx.db.prepare(`SELECT text, status FROM messages WHERE direction = 'out'`).get() as { text: string; status: string };
     expect(out.status).toBe('draft');
     expect(out.text).toContain("189 000 so'm");
+    // The owner hides the stock count for this product, so the reply must not reveal it.
+    expect(out.text).not.toMatch(/Omborda 3/);
+    expect(out.text).toContain('Mavjud');
     expect(f.calls.some((c) => c.url.endsWith('/178/messages'))).toBe(false);
   });
 
@@ -122,6 +125,16 @@ describe('DM replies', () => {
     const { sendDraft } = await import('../src/services/inbound.js');
     await sendDraft(ctx, 1, draft.id, 'Coca-Cola 1.5 L — 14 000 so‘m.');
     expect(ctx.db.prepare('SELECT status, handled_by FROM messages WHERE id = ?').get(draft.id)).toEqual({ status: 'sent', handled_by: 'human' });
+  });
+
+  it('never offers a product the owner hid from customers', async () => {
+    const f = fakeFetch([pdaftarRoutes(), instagramRoutes({ username: 'pdaftar_uz' })]);
+    const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz' });
+    seed(ctx, { autoSend: true });
+    await handleMessage(ctx, dm('yashirin narxi?', 'm-h'));
+    const out = ctx.db.prepare(`SELECT text FROM messages WHERE direction = 'out'`).get() as { text: string };
+    expect(out.text).not.toContain('Yashirin');
+    expect(out.text).not.toContain('99 000');
   });
 
   it('a person asking for an operator is handed off', async () => {

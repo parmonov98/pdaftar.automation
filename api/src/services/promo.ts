@@ -148,7 +148,7 @@ export async function handleRender(ctx: AppContext, payload: Record<string, unkn
         title: p.name,
         priceLine: p.price !== null ? formatPrice(p.price, p.currency) : null,
         oldPriceLine: v.template === 'sale' && old && p.price !== null && old > p.price ? formatPrice(old, p.currency) : null,
-        stockLine: p.stock === null ? null : p.stock > 0 ? 'Mavjud ✓' : null,
+        stockLine: p.orderable && (p.stock === null || p.stock > 0) ? 'Mavjud ✓' : null,
       });
     }
     const { caption, headline } = await writeCaption(ctx.models, shop, products, v.template);

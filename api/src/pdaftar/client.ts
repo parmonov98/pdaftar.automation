@@ -22,6 +22,12 @@ export interface PdProduct {
   stock: number | null;
   unit: string | null;
   images: string[];
+  /** Owner allows this product in the public catalog (hidden ones are never offered). */
+  visible: boolean;
+  /** Owner allows customers to see the stock count; otherwise only "available". */
+  showQuantity: boolean;
+  /** Whether pDaftar would accept an order for it right now. */
+  orderable: boolean;
 }
 
 export interface PdOrderInput {
@@ -173,10 +179,13 @@ export function normaliseProduct(raw: unknown): PdProduct {
     currency:
       str(p.currency) ??
       (typeof price === 'object' && price !== null ? str((price as { currency?: unknown }).currency) : null),
-    stock: num(p.stock ?? p.quantity ?? p.stock_quantity),
+    stock: num(p.stock_quantity ?? p.stock ?? p.quantity),
     unit: str(p.unit) ?? str((p.unit as { name?: string } | undefined)?.name),
     images: images
       .map((i: unknown) => (typeof i === 'string' ? i : str((i as { url?: string })?.url)))
       .filter((i): i is string => !!i),
+    visible: p.is_visible_to_clients === undefined ? true : p.is_visible_to_clients === true,
+    showQuantity: p.show_quantity_to_clients === undefined ? true : p.show_quantity_to_clients === true,
+    orderable: p.is_orderable === undefined ? true : p.is_orderable === true,
   };
 }

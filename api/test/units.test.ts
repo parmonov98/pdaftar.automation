@@ -134,7 +134,9 @@ describe('helpers', () => {
   });
   it('normalises product shapes', () => {
     expect(normaliseProduct({ id: '5', name: 'X', price: { amount: '12000', currency: 'UZS' }, quantity: '3', images: [{ url: 'u' }] })).toEqual({
-      id: 5, name: 'X', price: 12000, currency: 'UZS', stock: 3, unit: null, images: ['u'],
+      id: 5, name: 'X', price: 12000, currency: 'UZS', stock: 3, unit: null, images: ['u'], visible: true, showQuantity: true, orderable: true,
     });
+    const real = normaliseProduct({ id: 7, name: 'Y', price: 5000, currency: 'UZS', stock_quantity: 4, show_quantity_to_clients: false, is_visible_to_clients: true, is_orderable: true, unit: 'dona', image: 'a', images: ['a', 'b'] });
+    expect(real).toMatchObject({ stock: 4, showQuantity: false, visible: true, orderable: true, unit: 'dona', images: ['a', 'b'] });
   });
 });

@@ -35,8 +35,9 @@ export const json = (data: unknown, status = 200) => new Response(JSON.stringify
 
 export const PRODUCTS = [
   { id: 11, name: 'Coca-Cola 1.5 L', price: 14000, currency: 'UZS', stock: 24, unit: 'dona', images: ['https://cdn.test/cola.jpg'] },
-  { id: 12, name: 'Pepsi 1 L', price: 11000, currency: 'UZS', stock: 0, unit: 'dona', images: ['https://cdn.test/pepsi.jpg'] },
-  { id: 13, name: 'Qora futbolka XL', price: 189000, currency: 'UZS', stock: 3, unit: 'dona', images: ['https://cdn.test/tshirt.jpg'] },
+  { id: 12, name: 'Pepsi 1 L', price: 11000, currency: 'UZS', stock: 0, unit: 'dona', images: ['https://cdn.test/pepsi.jpg'], is_orderable: false },
+  { id: 13, name: 'Qora futbolka XL', price: 189000, currency: 'UZS', stock_quantity: 3, show_quantity_to_clients: false, is_visible_to_clients: true, is_orderable: true, unit: 'dona', images: ['https://cdn.test/tshirt.jpg'] },
+  { id: 14, name: 'Yashirin futbolka', price: 99000, currency: 'UZS', stock: 9, unit: 'dona', images: [], is_visible_to_clients: false },
 ];
 
 /** pDaftar integration API with the three products above. */

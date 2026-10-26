@@ -146,9 +146,16 @@ export async function pickByPhoto(models: AiModels, customerImage: string, candi
   return candidates;
 }
 
+function availability(p: PdProduct): 'in_stock' | 'out_of_stock' | 'unknown' {
+  if (p.stock === null) return p.orderable ? 'unknown' : 'out_of_stock';
+  return p.stock > 0 && p.orderable ? 'in_stock' : 'out_of_stock';
+}
+
 export async function decideReply(models: AiModels, ctx: ReplyContext): Promise<ReplyDecision> {
   const u = await understand(models, ctx);
   let products = u.intent === 'greeting' || u.intent === 'delivery' ? ctx.contextProducts : await findProducts(ctx, u);
+  // Products the owner hid from customers are never offered.
+  products = products.filter((p) => p.visible);
   if (ctx.imageUrls[0] && products.length > 1) products = await pickByPhoto(models, ctx.imageUrls[0], products);
 
   const showPrice = ctx.channel === 'dm' || ctx.settings.publicPrice;
@@ -165,8 +172,9 @@ export async function decideReply(models: AiModels, ctx: ReplyContext): Promise<
       price: p.price,
       price_text: p.price !== null ? formatPrice(p.price, p.currency) : null,
       currency: p.currency,
-      stock: p.stock,
-      availability: p.stock === null ? 'unknown' : p.stock > 0 ? 'in_stock' : 'out_of_stock',
+      // The count is only shared when the owner shows it to customers.
+      stock: p.showQuantity ? p.stock : null,
+      availability: availability(p),
     })),
     customer: { name: u.customerName, phone: u.customerPhone, quantity: u.quantity },
   };
@@ -198,7 +206,7 @@ Write the shop's reply. Return JSON: {"reply": string, "handoff": boolean, "reas
 
   let order: ReplyDecision['order'] = null;
   const pid = Number(j.order?.product_id);
-  if (ctx.channel === 'dm' && ctx.settings.createOrders && pid && products.some((p) => p.id === pid) && u.customerName && u.customerPhone) {
+  if (ctx.channel === 'dm' && ctx.settings.createOrders && pid && products.some((p) => p.id === pid && p.orderable) && u.customerName && u.customerPhone) {
     order = { productId: pid, quantity: Math.max(1, Math.floor(Number(j.order?.quantity) || u.quantity || 1)), customerName: u.customerName, customerPhone: u.customerPhone };
   }
 

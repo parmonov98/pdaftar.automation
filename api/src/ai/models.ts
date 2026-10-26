@@ -263,7 +263,8 @@ function mockReply(text: string) {
     return { reply: `${p.name} bor! Narxi va buyurtma uchun Direct'ga yozing 🙂`, handoff: false };
   }
   const price = p.price_text ?? 'narxini aniqlab beraman';
-  const stock = p.stock === null ? '' : p.stock > 0 ? ` Omborda ${p.stock} ta bor.` : ' Hozircha tugagan.';
+  const avail = (p as { availability?: string }).availability;
+  const stock = avail === 'out_of_stock' ? ' Hozircha tugagan.' : p.stock !== null ? ` Omborda ${p.stock} ta bor.` : avail === 'in_stock' ? ' Mavjud.' : '';
   return { reply: `${p.name} — ${price}.${stock} Buyurtma berasizmi?`, handoff: false };
 }
 
