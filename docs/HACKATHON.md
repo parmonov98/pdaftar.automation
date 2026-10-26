@@ -6,6 +6,7 @@ Track: **Startup**. Theme: **Build for Your World**. Deadline: **Nov 4, 2026, 9:
 
 - [ ] Claim the $150 Meta Model API credits (form in the Oct 26 Cerebral Valley email). Add a card and set the spend limit to $150.
 - [ ] Create a Model API key. Put it in `~/.config/pdaftar-automation/env` on the VPS as `META_API_KEY=…`, set `AI_PROVIDER=meta`, then run `systemctl --user restart pdaftar-automation`.
+- [ ] Check every model with one command: `cd ~/pdaftar/pdaftar.automation/api && node --env-file=$HOME/.config/pdaftar-automation/env dist/meta-check.js`. It tests chat, vision, SAM 3.1 and Muse Image and never prints the key.
 - [ ] Create a Meta developer app with **Instagram API with Instagram Login**:
   - Redirect URI: `https://automation.pdaftar.uz/auth/instagram/callback`.
   - Webhook URL: `https://automation.pdaftar.uz/webhooks/instagram`. The verify token is `IG_WEBHOOK_VERIFY_TOKEN` in the env file. Fields: `comments`, `messages`.

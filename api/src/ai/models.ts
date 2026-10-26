@@ -67,6 +67,13 @@ export class MetaModels implements AiModels {
    */
   async segmentProduct(image: Buffer, hint: string): Promise<Buffer | null> {
     if (!this.cfg.segmentModel) return null;
+    const box = parseSamBox(await this.samRaw(image, hint));
+    if (!box) return null;
+    return cropToBox(image, box);
+  }
+
+  /** SAM 3.1's raw token output for one image and noun phrase. */
+  async samRaw(image: Buffer, hint: string): Promise<string> {
     const res = await this.post('/responses', {
       model: this.cfg.segmentModel,
       input: [
@@ -78,10 +85,9 @@ export class MetaModels implements AiModels {
           ],
         },
       ],
+      metadata: { mask_encoding: 'one_bit' },
     });
-    const box = parseSamBox(responseText(res));
-    if (!box) return null;
-    return cropToBox(image, box);
+    return responseText(res);
   }
 
   /** Muse Image edit: the product crop goes in `images[]`; the model builds the scene around it. */
