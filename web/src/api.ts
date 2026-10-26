@@ -55,6 +55,8 @@ export interface Product {
   currency: string | null;
   stock: number | null;
   images: string[];
+  visible?: boolean;
+  orderable?: boolean;
 }
 
 export interface Promo {

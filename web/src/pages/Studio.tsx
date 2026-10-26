@@ -23,7 +23,9 @@ export function Studio({ me }: { me: Me }) {
     setLoadError(false);
     try {
       const r = await api<{ products: Product[] }>(`/api/catalog?search=${encodeURIComponent(q)}`);
-      setProducts(r.products);
+      // Products customers can see, with a photo, come first.
+      const rank = (p: Product) => (p.visible === false ? 2 : 0) + (p.images[0] ? 0 : 1);
+      setProducts([...r.products].sort((a, b) => rank(a) - rank(b)));
     } catch {
       setLoadError(true);
     }
@@ -106,6 +108,7 @@ export function Studio({ me }: { me: Me }) {
                   {on && <span className="check">✓</span>}
                   <div className="meta">
                     <div className="name">{p.name}</div>
+                    {p.visible === false && <div className="chip warn" style={{ marginBottom: 4 }}>{t.hiddenFromCustomers}</div>}
                     <div className="row" style={{ justifyContent: 'space-between' }}>
                       <span>{formatPrice(p.price, p.currency)}</span>
                       {p.stock !== null && <span className={p.stock > 0 ? 'muted' : 'error-text'}>{p.stock > 0 ? p.stock : t.outOfStock}</span>}
