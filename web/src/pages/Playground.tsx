@@ -10,6 +10,8 @@ interface Result {
   products: { id: number; name: string; price: number | null; currency: string | null; stock: number | null; image: string | null }[];
   ms: number;
   model: string;
+  engine?: string;
+  trace?: { tool: string; args: Record<string, unknown>; result: string }[];
   transcript: string | null;
 }
 
@@ -223,7 +225,8 @@ export function Playground() {
             <h3 className="grow">{t.reply}</h3>
             {result.handoff && <span className="chip warn">{t.handoffYes}</span>}
             <span className="muted" style={{ fontSize: 13 }}>
-              {result.model} · {(result.ms / 1000).toFixed(1)} s
+              {result.model}
+              {result.engine === 'agent' ? ' · agent' : ''} · {(result.ms / 1000).toFixed(1)} s
             </span>
           </div>
           {result.transcript && (
@@ -237,6 +240,18 @@ export function Playground() {
             {result.understanding.productQuery && <> · “{result.understanding.productQuery}”</>} · {result.understanding.language}
             {result.reason && <> · {result.reason}</>}
           </div>
+          {!!result.trace?.length && (
+            <details>
+              <summary className="muted" style={{ cursor: 'pointer' }}>{t.agentSteps(result.trace.length)}</summary>
+              <ol className="stack" style={{ gap: 6, paddingLeft: 18, fontSize: 13 }}>
+                {result.trace.map((step, i) => (
+                  <li key={i}>
+                    <code>{step.tool}</code>({JSON.stringify(step.args)}) → <span className="muted" style={{ overflowWrap: 'anywhere' }}>{step.result.slice(0, 160)}</span>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
           {result.products.length > 0 && (
             <>
               <h3>{t.matched}</h3>

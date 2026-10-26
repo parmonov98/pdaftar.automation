@@ -5,7 +5,8 @@ import { existsSync } from 'node:fs';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { decideReply, type WorkspaceSettings } from './ai/replies.js';
+import { replyFor } from './ai/agent.js';
+import type { WorkspaceSettings } from './ai/replies.js';
 import { currentMonth } from './db.js';
 import { authorizeUrl, exchangeCode, InstagramClient } from './instagram/client.js';
 import { parseWebhook } from './instagram/webhook.js';
@@ -285,7 +286,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
       if (p) contextProducts.push(p);
     }
     const started = Date.now();
-    const d = await decideReply(ctx.models, {
+    const d = await replyFor(ctx.models, {
       channel: body.channel,
       text,
       imageUrls: image ? [image] : [],
@@ -294,7 +295,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
       settings: settingsOf(ws),
       history: [],
       searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
-    });
+    }, ctx.config.replyEngine);
     return {
       reply: d.reply,
       handoff: d.handoff,
@@ -303,6 +304,8 @@ export function buildServer(ctx: AppContext): FastifyInstance {
       products: d.products.map((p) => ({ id: p.id, name: p.name, price: p.price, currency: p.currency, stock: p.stock, image: p.images[0] ?? null })),
       ms: Date.now() - started,
       model: ctx.models.name,
+      engine: ctx.config.replyEngine,
+      trace: d.trace ?? [],
       transcript,
     };
   });

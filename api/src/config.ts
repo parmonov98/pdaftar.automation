@@ -23,6 +23,8 @@ export interface Config {
   /** 32-byte key (base64) used to encrypt stored third-party tokens. */
   encryptionKey: string;
   sessionTtlDays: number;
+  /** 'pipeline' (fixed steps) or 'agent' (Muse Spark calls tools itself). */
+  replyEngine: 'pipeline' | 'agent';
 
   ai: {
     provider: AiProvider;
@@ -68,6 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webDistDir: env.WEB_DIST_DIR ? resolve(env.WEB_DIST_DIR) : null,
     encryptionKey: env.ENCRYPTION_KEY ?? '',
     sessionTtlDays: Number(env.SESSION_TTL_DAYS ?? 30),
+    replyEngine: env.REPLY_ENGINE === 'agent' ? 'agent' : 'pipeline',
     ai: {
       provider: (env.AI_PROVIDER as AiProvider) === 'meta' ? 'meta' : 'mock',
       baseUrl: (env.META_API_BASE_URL ?? 'https://api.meta.ai/v1').replace(/\/$/, ''),

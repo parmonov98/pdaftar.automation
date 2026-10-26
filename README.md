@@ -28,6 +28,16 @@ Built for the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026), Start
 | Reel caption + hashtags | `muse-spark-1.3` |
 | Voice notes in DMs (very common in Uzbekistan) → text, then the normal grounded reply | `muse-voice-transcribe-1.0` |
 
+**Two reply engines** (`REPLY_ENGINE`):
+- `pipeline`: fixed steps (understand → search → reply).
+- `agent`: Muse Spark calls the tools itself (`search_catalog`, `get_product`, `place_order`, `handoff`) with OpenAI-style tool calling.
+
+Both share the same hard guards:
+- prices are grounded in the catalog;
+- products and stock counts the owner hid stay hidden;
+- orders are placed only with a name and phone the customer really wrote;
+- comments can't place orders.
+
 Customer messages are never sent to the discounted "contributor" variants, which Meta may train on. The code refuses them.
 
 ## Architecture

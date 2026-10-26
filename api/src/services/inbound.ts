@@ -1,4 +1,4 @@
-import { decideReply } from '../ai/replies.js';
+import { replyFor } from '../ai/agent.js';
 import { bumpUsage } from '../db.js';
 import type { IncomingComment, IncomingEvent, IncomingMessage } from '../instagram/webhook.js';
 import type { PdProduct } from '../pdaftar/client.js';
@@ -69,7 +69,7 @@ export async function handleComment(ctx: AppContext, payload: Record<string, unk
   const pd = pdaftarFor(ctx, ws);
   const shop = await pd.shop();
   const contextProducts = await productsForMedia(ctx, ws.id, ev.mediaId, (id) => pd.product(id));
-  const decision = await decideReply(ctx.models, {
+  const decision = await replyFor(ctx.models, {
     channel: 'comment',
     text: ev.text,
     imageUrls: [],
@@ -78,7 +78,7 @@ export async function handleComment(ctx: AppContext, payload: Record<string, unk
     settings,
     history: [],
     searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
-  });
+  }, ctx.config.replyEngine);
   bumpUsage(ctx.db, ws.id, 'ai_calls', 2);
 
   const meta = JSON.stringify({ intent: decision.understanding.intent, products: decision.products.map((p) => p.id), reason: decision.reason });
@@ -164,7 +164,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
 
   const pd = pdaftarFor(ctx, ws);
   const shop = await pd.shop();
-  const decision = await decideReply(ctx.models, {
+  const decision = await replyFor(ctx.models, {
     channel: 'dm',
     text,
     imageUrls: ev.imageUrls,
@@ -173,7 +173,7 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
     settings,
     history,
     searchCatalog: (q) => pd.products({ search: q, perPage: 5 }),
-  });
+  }, ctx.config.replyEngine);
   bumpUsage(ctx.db, ws.id, 'ai_calls', (ev.imageUrls.length ? 3 : 2) + (voice ? 1 : 0));
 
   let replyText = decision.reply;

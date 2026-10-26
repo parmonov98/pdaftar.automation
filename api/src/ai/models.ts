@@ -6,8 +6,26 @@ import type { Config } from '../config.js';
  * development run without keys; it is never used when AI_PROVIDER=meta.
  */
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string | ChatPart[];
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string | ChatPart[] | null;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+}
+
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+export interface ToolSpec {
+  type: 'function';
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+}
+
+export interface ToolTurn {
+  content: string | null;
+  toolCalls: ToolCall[];
 }
 
 export type ChatPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
@@ -22,6 +40,8 @@ export interface AiModels {
   stageProduct(cutout: Buffer, prompt: string): Promise<Buffer | null>;
   /** Speech to text for a voice note (any format ffmpeg reads). Null if unsupported or empty. */
   transcribe(audio: Buffer): Promise<string | null>;
+  /** One model turn with tools available (OpenAI-compatible tool calling). */
+  chatWithTools(messages: ChatMessage[], tools: ToolSpec[]): Promise<ToolTurn>;
 }
 
 export class AiError extends Error {}
@@ -104,6 +124,20 @@ export class MetaModels implements AiModels {
       response_format: 'b64_json',
     });
     return firstImage(res);
+  }
+
+  async chatWithTools(messages: ChatMessage[], tools: ToolSpec[]): Promise<ToolTurn> {
+    const res = (await this.post('/chat/completions', {
+      model: this.cfg.textModel,
+      messages,
+      tools,
+      tool_choice: 'auto',
+      temperature: 0.2,
+      max_completion_tokens: 600,
+    })) as { choices?: { message?: { content?: unknown; tool_calls?: ToolCall[] } }[] };
+    const msg = res.choices?.[0]?.message;
+    const content = extractContent(res);
+    return { content: content && content.trim() ? content : null, toolCalls: msg?.tool_calls ?? [] };
   }
 
   /** Muse Voice Transcribe. The endpoint takes WAV only, so the note is converted first. */
@@ -239,6 +273,29 @@ export class MockModels implements AiModels {
 
   async stageProduct(): Promise<Buffer | null> {
     return null;
+  }
+
+  /**
+   * Scripted agent: searches the catalog for the message's main words, then answers from the
+   * tool result. Enough to exercise the agent loop and its guards without a model.
+   */
+  async chatWithTools(messages: ChatMessage[]): Promise<ToolTurn> {
+    const toolResults = messages.filter((m) => m.role === 'tool');
+    const user = [...messages].reverse().find((m) => m.role === 'user');
+    const text = typeof user?.content === 'string' ? user.content : '';
+    if (/operator|odam|shikoyat|жалоб|менеджер/i.test(text) && !toolResults.length) {
+      return { content: null, toolCalls: [{ id: 'h1', type: 'function', function: { name: 'handoff', arguments: JSON.stringify({ reason: 'customer asked for a person' }) } }] };
+    }
+    if (!toolResults.length) {
+      const query = mockUnderstand(`<message>${text}</message>`).product_query ?? text;
+      return { content: null, toolCalls: [{ id: 's1', type: 'function', function: { name: 'search_catalog', arguments: JSON.stringify({ query }) } }] };
+    }
+    const last = JSON.parse(String(toolResults[toolResults.length - 1]!.content)) as { products?: { name: string; price_text: string | null; availability: string }[]; ok?: boolean };
+    if (last.ok) return { content: "Uzr, noqulaylik uchun! Do'kon egasi tez orada o'zi javob beradi.", toolCalls: [] };
+    const p = last.products?.[0];
+    if (!p) return { content: 'Bu mahsulotni topa olmadim, aniqlab beraman.', toolCalls: [] };
+    const avail = p.availability === 'out_of_stock' ? ' Hozircha tugagan.' : p.availability === 'in_stock' ? ' Mavjud.' : '';
+    return { content: `${p.name}${p.price_text ? ` — ${p.price_text}` : ''}.${avail} Buyurtma berasizmi?`, toolCalls: [] };
   }
 
   /** Tests put the transcript in the audio bytes themselves: "TRANSCRIPT:<text>". */

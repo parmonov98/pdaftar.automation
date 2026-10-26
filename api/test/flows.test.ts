@@ -193,6 +193,16 @@ describe('DM replies', () => {
     expect(f.calls.some((c) => c.url.endsWith('/178/messages'))).toBe(false);
   });
 
+  it('the agent engine answers a DM through the same safety rails', async () => {
+    const f = fakeFetch([pdaftarRoutes(), instagramRoutes({ username: 'pdaftar_uz' })]);
+    const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz', REPLY_ENGINE: 'agent' });
+    seed(ctx, { autoSend: true });
+    await handleMessage(ctx, dm('cola narxi qancha?', 'm-ag'));
+    const out = ctx.db.prepare(`SELECT text, status FROM messages WHERE direction = 'out'`).get() as { text: string; status: string };
+    expect(out).toMatchObject({ status: 'sent' });
+    expect(out.text).toContain("14 000 so'm");
+  });
+
   it('a person asking for an operator is handed off', async () => {
     const f = fakeFetch([pdaftarRoutes(), instagramRoutes({ username: 'pdaftar_uz' })]);
     const ctx = testContext(f.impl, { IG_SAFE_MODE_ALLOWED_USERNAMES: 'pdaftar_uz' });
