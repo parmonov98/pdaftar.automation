@@ -61,6 +61,27 @@ describe('session + auth', () => {
   });
 });
 
+describe('playground', () => {
+  it('answers a recorded voice note and an uploaded photo without sending anything', async () => {
+    const f = fakeFetch([pdaftarRoutes()]);
+    const ctx = testContext(f.impl);
+    const app = buildServer(ctx);
+    const login = await app.inject({ method: 'POST', url: '/api/session', payload: { token: 'pda_valid_token_123' } });
+    const cookie = String(login.headers['set-cookie']).split(';')[0]!;
+    const audioData = `data:audio/webm;codecs=opus;base64,${Buffer.from('TRANSCRIPT:futbolka narxi qancha').toString('base64')}`;
+    const voice = await app.inject({ method: 'POST', url: '/api/playground', headers: { cookie }, payload: { channel: 'dm', audioData } });
+    expect(voice.statusCode).toBe(200);
+    expect(voice.json()).toMatchObject({ transcript: 'futbolka narxi qancha' });
+    expect(voice.json().reply).toContain('Qora futbolka XL');
+    const unclear = await app.inject({ method: 'POST', url: '/api/playground', headers: { cookie }, payload: { channel: 'dm', audioData: 'data:audio/mp4;base64,AAAA' } });
+    expect(unclear.json()).toMatchObject({ code: 'transcribe_empty' });
+    const imageData = `data:image/jpeg;base64,${PHOTO.toString('base64')}`;
+    const photo = await app.inject({ method: 'POST', url: '/api/playground', headers: { cookie }, payload: { channel: 'dm', text: 'cola bormi?', imageData } });
+    expect(photo.statusCode).toBe(200);
+    expect(f.calls.some((c) => c.url.includes('instagram'))).toBe(false);
+  });
+});
+
 describe('webhooks', () => {
   it('verifies the subscription handshake', async () => {
     const app = buildServer(testContext(fakeFetch([]).impl));

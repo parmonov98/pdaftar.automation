@@ -250,15 +250,32 @@ export function buildServer(ctx: AppContext): FastifyInstance {
   });
 
   // ---- playground: the full reply pipeline on a test message, nothing is sent ----
-  app.post('/api/playground', { preHandler: requireWorkspace }, async (req) => {
+  app.post('/api/playground', { preHandler: requireWorkspace, bodyLimit: 12 * 1024 * 1024 }, async (req, reply) => {
     const body = z
       .object({
         channel: z.enum(['comment', 'dm']),
         text: z.string().trim().max(1000).default(''),
         imageUrl: z.string().url().optional(),
+        /** An uploaded photo as a data URL (jpeg/png/webp, up to ~4 MB). */
+        imageData: z.string().regex(/^data:image\/(jpeg|png|webp);base64,/).max(6_000_000).optional(),
+        /** An uploaded or recorded voice note as a data URL (any format ffmpeg reads). */
+        audioData: z.string().regex(/^data:audio\/[\w.+-]+(;[\w=.-]+)*;base64,/).max(8_000_000).optional(),
         productIds: z.array(z.number().int().positive()).max(5).optional(),
       })
       .parse(req.body);
+    let text = body.text;
+    let transcript: string | null = null;
+    if (body.audioData) {
+      try {
+        transcript = await ctx.models.transcribe(Buffer.from(body.audioData.split(',')[1] ?? '', 'base64'));
+      } catch (e) {
+        ctx.log('playground transcribe failed', { error: String(e) });
+        return reply.code(502).send({ error: 'Voice note could not be transcribed', code: 'transcribe_failed' });
+      }
+      if (!transcript) return reply.code(422).send({ error: 'Voice note could not be understood', code: 'transcribe_empty' });
+      text = [text, transcript].filter(Boolean).join('\n');
+    }
+    const image = body.imageData ?? body.imageUrl;
     const ws = req.workspace!;
     const pd = pdaftarFor(ctx, ws);
     const shop = await pd.shop();
@@ -270,8 +287,8 @@ export function buildServer(ctx: AppContext): FastifyInstance {
     const started = Date.now();
     const d = await decideReply(ctx.models, {
       channel: body.channel,
-      text: body.text,
-      imageUrls: body.imageUrl ? [body.imageUrl] : [],
+      text,
+      imageUrls: image ? [image] : [],
       contextProducts,
       shop,
       settings: settingsOf(ws),
@@ -286,6 +303,7 @@ export function buildServer(ctx: AppContext): FastifyInstance {
       products: d.products.map((p) => ({ id: p.id, name: p.name, price: p.price, currency: p.currency, stock: p.stock, image: p.images[0] ?? null })),
       ms: Date.now() - started,
       model: ctx.models.name,
+      transcript,
     };
   });
 
