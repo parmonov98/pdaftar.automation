@@ -104,7 +104,7 @@ Cut them together with a 15-second intro (the problem) and outro (impact); targe
 
 ## X post draft (Most Viral bonus; post from the pDaftar account, tag the hackathon)
 
-> Small shops in Uzbekistan sell through Instagram DMs, and every Reel brings 50× "narxi qancha?" ("how much?").
+> Small shops in Uzbekistan sell through Instagram DMs, and every Reel brings dozens of "narxi qancha?" ("how much?").
 >
 > We built pDaftar Javob on Meta's models:
 > 🧠 Muse Spark answers with the shop's REAL prices from pDaftar (never invented)
