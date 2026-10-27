@@ -29,7 +29,7 @@ Track: **Startup**. Theme: **Build for Your World**. Deadline: **Nov 4, 2026, 9:
   - Webhook URL: `https://automation.pdaftar.uz/webhooks/instagram`, with the verify token from `IG_WEBHOOK_VERIFY_TOKEN` in the env file. Fields: `comments`, `messages`.
   - Add @pdaftar.uz and pdaftar_uz as app roles. Put `IG_APP_ID` and `IG_APP_SECRET` in the env file and restart.
 - [ ] Merge pdaftar.backend PR #2366 (needs a human click). Then set `AUTOMATION_INTEGRATION_ENABLED=true` on dev-api and point `PDAFTAR_API_BASE_URL` back to dev-api.
-- [ ] **Make github.com/parmonov98/pdaftar.automation public** before submitting (required).
+- [x] **Make github.com/parmonov98/pdaftar.automation public** before submitting (required). Done 2026-10-27.
 - [ ] Record the 3-minute video. Show only the new work; pDaftar appears only as "the catalog we read from".
 
 ## Submission form answers (draft, paste into the CV form)
