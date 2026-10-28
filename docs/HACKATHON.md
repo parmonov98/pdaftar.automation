@@ -21,7 +21,7 @@ Track: **Startup**. Theme: **Build for Your World**. Deadline: **Nov 4, 2026, 9:
 
 ## Owner checklist (needs your accounts)
 
-- [ ] Claim the $150 Meta Model API credits (form in the Oct 26 Cerebral Valley email). Add a card (there is a pre-auth hold) and set the spend limit to $150. *(A Mac session was asked to fill the form; it won't enter card details.)*
+- [x] Claim the $150 Meta Model API credits: submitted 2026-10-28 (owner-approved; credits land within 2 business days). Still needed: add a card at dev.meta.ai Billing (owner only, there is a pre-auth hold) and set the $150 spend limit.
 - [ ] Create a Model API key. Put it in `~/.config/pdaftar-automation/env` on the VPS as `META_API_KEY=…`, set `AI_PROVIDER=meta`, then run `systemctl --user restart pdaftar-automation`.
 - [ ] Check every model with one command: `cd ~/pdaftar/pdaftar.automation/api && node --env-file=$HOME/.config/pdaftar-automation/env dist/meta-check.js`. It tests chat, vision, SAM 3.1, Muse Image and Voice Transcribe, and never prints the key.
 - [ ] Create a Meta developer app with **Instagram API with Instagram Login**:
