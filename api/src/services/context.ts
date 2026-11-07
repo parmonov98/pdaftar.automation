@@ -4,6 +4,7 @@ import type { Config } from '../config.js';
 import type { DB } from '../db.js';
 import { InstagramClient } from '../instagram/client.js';
 import { decrypt } from '../lib/crypto.js';
+import type { LookupFn } from '../lib/ssrf.js';
 import { PdaftarClient } from '../pdaftar/client.js';
 
 /** Everything a request handler or job needs, created once at startup. */
@@ -12,6 +13,8 @@ export interface AppContext {
   db: DB;
   models: AiModels;
   fetchImpl: typeof fetch;
+  /** Optional DNS resolver for the SSRF guard; defaults to node dns.lookup. */
+  lookup?: LookupFn;
   log: (msg: string, extra?: Record<string, unknown>) => void;
 }
 

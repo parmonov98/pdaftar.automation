@@ -4,6 +4,7 @@ import type { AiModels } from '../ai/models.js';
 import { parseJson } from '../ai/replies.js';
 import { bumpUsage } from '../db.js';
 import { randomToken } from '../lib/crypto.js';
+import { assertPublicHttpUrl } from '../lib/ssrf.js';
 import type { PdProduct, PdShop } from '../pdaftar/client.js';
 import { formatPrice, renderPromo, type Slide, type Template } from '../video/render.js';
 import { type AppContext, getWorkspace, igAccountForWorkspace, igClientFor, pdaftarFor } from './context.js';
@@ -37,6 +38,10 @@ export function createPromo(ctx: AppContext, workspaceId: number, req: PromoRequ
 }
 
 async function download(ctx: AppContext, url: string): Promise<Buffer> {
+  // The URL comes from a shop's product record, so it is attacker-influenceable.
+  // Validate it (https + public address only) before fetching: otherwise this
+  // is a blind SSRF into loopback/metadata/private hosts.
+  await assertPublicHttpUrl(url, ctx.lookup);
   const res = await ctx.fetchImpl(url, { signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`Image download failed (${res.status})`);
   return Buffer.from(await res.arrayBuffer());

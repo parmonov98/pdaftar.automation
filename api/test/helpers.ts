@@ -76,5 +76,9 @@ export function testContext(fetchImpl: typeof fetch, env: Record<string, string>
     ...env,
   });
   const logs: string[] = [];
-  return { config, db: openDb(join(dir, 'db.sqlite')), models: new MockModels(), fetchImpl, log: (m) => logs.push(m) };
+  // Tests use fake hosts (cdn.test, voice.test) with a stubbed fetch, so the
+  // SSRF guard's DNS resolver is stubbed to a public address here. Real DNS
+  // runs only in production.
+  const lookup = async () => [{ address: '93.184.216.34' }];
+  return { config, db: openDb(join(dir, 'db.sqlite')), models: new MockModels(), fetchImpl, lookup, log: (m) => logs.push(m) };
 }

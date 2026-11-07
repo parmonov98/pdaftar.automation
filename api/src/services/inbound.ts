@@ -3,6 +3,7 @@ import { replyFor } from '../ai/agent.js';
 import { AiBudgetError } from '../ai/budget.js';
 import { fallbackReply } from '../ai/replies.js';
 import { bumpUsage } from '../db.js';
+import { assertPublicHttpUrl } from '../lib/ssrf.js';
 import type { IncomingComment, IncomingEvent, IncomingMessage } from '../instagram/webhook.js';
 import type { PdProduct } from '../pdaftar/client.js';
 import {
@@ -153,6 +154,9 @@ export async function handleMessage(ctx: AppContext, payload: Record<string, unk
   let voice = false;
   for (const url of (ev.audioUrls ?? []).slice(0, 1)) {
     try {
+      // Validate before fetching (https + public address only): the URL is
+      // externally supplied, so an unguarded fetch is a blind SSRF vector.
+      await assertPublicHttpUrl(url, ctx.lookup);
       const res = await ctx.fetchImpl(url, { signal: AbortSignal.timeout(20000) });
       if (!res.ok) throw new Error(`audio download ${res.status}`);
       const transcript = await ctx.models.transcribe(Buffer.from(await res.arrayBuffer()));
